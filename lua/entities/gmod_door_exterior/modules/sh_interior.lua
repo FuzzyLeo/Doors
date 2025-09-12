@@ -14,21 +14,11 @@ if SERVER then
         td.output=tdret
         td.mins=e.mins or e:OBBMins()
         td.maxs=e.maxs or e:OBBMaxs()
-        local td3d={}
-        local td3dret={}
-        td3d.output = td3dret
-        td3d.mask = MASK_SOLID_BRUSHONLY
-        local skycam = ents.FindByClass("sky_camera")[1]
-        local isskycam = IsValid(skycam)
-        if isskycam then
-            td3d.endpos = skycam:GetPos()
-        end
         local max=16384
         local tries=10000
         local targetframetime=1/30
         local nowhere
         local highest
-        local highest3d
         local start=SysTime()
         while tries>0 do
             tries=tries-1
@@ -39,18 +29,14 @@ if SERVER then
             nowhere=Vector(math.random(-max,max),math.random(-max,max),math.random(-max,max))
             td.start=nowhere
             td.endpos=nowhere
-            td3d.start=nowhere
             if ((not highest) or (highest and nowhere.z>highest.z))
                 and (not util.TraceHull(td).Hit)
                 and (self:CallHook("AllowInteriorPos",nil,nowhere,mins,maxs)~=false)
             then
-                if isskycam and util.TraceLine(td3d).Hit then
-                    highest3d = nowhere
-                end
                 highest = nowhere
             end
         end
-        return highest3d or highest
+        return highest
     end
     
     ENT:AddHook("ShouldThinkFast","interior",function(self)
