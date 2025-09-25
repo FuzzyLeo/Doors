@@ -38,14 +38,11 @@ jobs:
 
       - name: Combine files
         run: |
-          # create combined directory
           mkdir -p $combined
-          # copy all files from current repository to combined directory
-          cp -r ${{ github.workspace }}/${{ github.repository }}/* $combined
-          # copy all files from world-portals repository to combined directory
           cp -r ${{ github.workspace }}/world-portals/* $combined
+          cp -r ${{ github.workspace }}/${{ github.repository }}/* $combined
 
-          ls -la $combined
+          ls -laR $combined
         env:
           combined: ${{ github.workspace }}/combined
 
