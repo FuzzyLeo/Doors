@@ -5,7 +5,7 @@ else
     ENT.Base            = "base_gmodentity"
 end 
 ENT.Author          = "Dr. Matt"
-ENT.RenderGroup     = RENDERGROUP_BOTH
+ENT.RenderGroup     = RENDERGROUP_OPAQUE
 ENT.DoorInterior    = true
 
 -- Hook system for modules
