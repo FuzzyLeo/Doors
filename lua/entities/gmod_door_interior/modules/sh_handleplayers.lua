@@ -28,29 +28,26 @@ function ENT:IsStuck(ply)
     return tr.Hit
 end
 
-function ENT:IsThisSafe(ply, dist) -- Checking in advance to teleporting as actually using the player, this is because teleporting the player then teleporting again to the fallback location causes flashing
-    local pos=ply:GetPos() + dist
-    local td={}
-    td.start=pos
-    td.endpos=pos
-    td.mins=ply:OBBMins()
-    td.maxs=ply:OBBMaxs()
-    td.filter={ply,unpack(self.stuckfilter)}
-    local tr=util.TraceHull(td)
-    return !tr.Hit
-end
-
 function ENT:UnStick(ply, portal, exiting)
+    -- Find closest floor position within 10 units
     local pos=ply:GetPos()
     local td=self:GetStuckTrace(ply)
-    td.maxs.z=td.mins.z -- Ignore head height for the snapping to floor bit to avoid conflicting with low ceilings
+    local oldmaxsz=td.maxs.z
+    td.maxs.z=td.mins.z -- Ignore head height for floor snap due to low ceilings
     td.start = td.start + Vector(0,0,10)
     local tr = util.TraceHull(td)
-    local dist = tr.HitPos - pos
-    print(dist)
-    if tr.HitPos and self:IsThisSafe(ply, dist) then
-        ply:SetPos(tr.HitPos)
+    local newpos = tr.HitPos
+
+    -- Reset trace parameters to check if new position is valid
+    td.maxs.z=oldmaxsz
+    td.start=newpos
+    td.endpos=newpos
+
+    if newpos and not util.TraceHull(td).Hit then
+        -- New floor position is valid
+        ply:SetPos(newpos)
     else
+        -- New floor position is invalid, use fallback
         if exiting then
             self.exterior:PlayerEnter(ply)
             self.exterior:PlayerExit(ply)
