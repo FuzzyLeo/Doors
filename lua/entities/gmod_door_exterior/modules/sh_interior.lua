@@ -34,8 +34,6 @@ if SERVER then
                 and (not util.TraceHull(td).Hit)
                 and (self:CallHook("AllowInteriorPos",nil,nowhere,mins,maxs)~=false)
             then
-                print("start")
-                PrintTable(util.TraceHull(td))
                 highest = nowhere
             end
         end
