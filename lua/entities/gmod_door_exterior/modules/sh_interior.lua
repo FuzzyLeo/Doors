@@ -14,6 +14,7 @@ if SERVER then
         td.output=tdret
         td.mins=e.mins or e:OBBMins()
         td.maxs=e.maxs or e:OBBMaxs()
+        td.mask = 33636363
         local max=16384
         local tries=10000
         local targetframetime=1/30
@@ -33,6 +34,8 @@ if SERVER then
                 and (not util.TraceHull(td).Hit)
                 and (self:CallHook("AllowInteriorPos",nil,nowhere,mins,maxs)~=false)
             then
+                print("start")
+                PrintTable(util.TraceHull(td))
                 highest = nowhere
             end
         end
