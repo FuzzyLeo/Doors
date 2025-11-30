@@ -150,15 +150,21 @@ else
         local ply=net.ReadEntity()
         local ext=net.ReadEntity()
         local int=net.ReadEntity()
+
+        if not IsValid(ply) then return end
         
         if enter then
             ply.door=ext
             ply.doori=int
-            ext.occupants[ply]=true
+            if IsValid(ext) then
+                ext.occupants[ply]=true
+            end
         else
             ply.door=nil
             ply.doori=nil
-            ext.occupants[ply]=nil
+            if IsValid(ext) then
+                ext.occupants[ply]=nil
+            end
         end
 
         if ply~=LocalPlayer() then return end
