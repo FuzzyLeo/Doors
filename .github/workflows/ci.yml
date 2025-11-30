@@ -62,7 +62,6 @@ jobs:
 
       - uses: AmyJeanes/gmod-upload@main
         name: Publish to workshop
-        if: steps.workshop_id.outputs.WORKSHOP_ID
         with:
           id: ${{ steps.workshop_id.outputs.WORKSHOP_ID }}
           changelog: "${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
