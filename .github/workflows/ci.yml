@@ -69,11 +69,13 @@ jobs:
           echo "Publishing to workshop ID $WORKSHOP_ID"
           echo "WORKSHOP_ID=$WORKSHOP_ID" >> $GITHUB_OUTPUT
 
-      - uses: vurv78/gmod-upload@master
+      - uses: AmyJeanes/gmod-upload@main
         name: Publish to workshop
+        if: steps.workshop_id.outputs.WORKSHOP_ID
         with:
           id: ${{ steps.workshop_id.outputs.WORKSHOP_ID }}
           changelog: "${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
+          folder: ${{ github.workspace }}/combined
         env:
           STEAM_USERNAME: ${{ vars.STEAM_USERNAME }}
           STEAM_PASSWORD: ${{ secrets.STEAM_PASSWORD }}
