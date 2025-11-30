@@ -117,4 +117,28 @@ else
             return false
         end
     end)
+
+    hook.Add("PrePlayerDraw", "doors-handleplayers", function(ply)
+        local int=ply.doori
+        if not IsValid(int) then return end
+        local localply=LocalPlayer()
+        local localplyinside=localply.doori==int
+        local drawingportal=wp.drawing and wp.drawingent==int.portals.exterior
+        local shoulddraw=int:CallHook("ShouldDrawPlayer", ply, localply)
+        if (not localplyinside or shoulddraw==false) and not drawingportal then
+            return true
+        end
+    end)
+
+    hook.Add("DrawPhysgunBeam", "doors-handleplayers", function(ply)
+        local int=ply.doori
+        if not IsValid(int) then return end
+        local localply=LocalPlayer()
+        local localplyinside=localply.doori==int
+        local drawingportal=wp.drawing and wp.drawingent==int.portals.exterior
+        local shoulddraw=int:CallHook("ShouldDrawPlayer", ply, localply)
+        if (not localplyinside or shoulddraw==false) and not drawingportal then
+            return false
+        end
+    end)
 end
