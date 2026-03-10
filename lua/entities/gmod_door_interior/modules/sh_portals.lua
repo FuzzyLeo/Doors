@@ -259,6 +259,10 @@ if SERVER then
                     fworld:SetFalseWorld(v.falseworld)
                 end
 
+                if v.link then
+                    fworld:SetCustomLink(v.link)
+                end
+
                 fworld.exterior = self.exterior
                 fworld.interior = self
                 fworld:Spawn()
