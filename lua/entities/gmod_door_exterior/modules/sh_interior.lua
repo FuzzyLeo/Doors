@@ -32,7 +32,7 @@ if SERVER then
             td.endpos=nowhere
             if ((not highest) or (highest and nowhere.z>highest.z))
                 and (not util.TraceHull(td --[[@as HullTrace]]).Hit)
-                and (self:CallHook("AllowInteriorPos",nil,nowhere,mins,maxs)~=false)
+                and (self:CallHook("AllowInteriorPos",nil,nowhere,td.mins,td.maxs)~=false)
             then
                 highest = nowhere
             end
@@ -125,15 +125,16 @@ else
                 break
             end
         end
-        if IsValid(inside) then
+        if inside and IsValid(inside) then
+            local contains = inside.contains
             if self.insideof~=inside then
                 if IsValid(self.insideof) and self.insideof.contains then
                     self.insideof.contains[self]=nil
                 end
                 self.insideof=inside
             end
-            if inside.contains then
-                inside.contains[self]=true
+            if contains then
+                contains[self]=true
             end
         elseif IsValid(self.insideof) and self.insideof.contains then
             self.insideof.contains[self]=nil
