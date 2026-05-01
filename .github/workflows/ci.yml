@@ -1,7 +1,7 @@
 name: CI
 
 on:
-  pull_request_target:
+  pull_request:
     branches:
       - dev
   push:
@@ -20,6 +20,45 @@ on:
         - beta
 
 jobs:
+  glua-check:
+    name: GLua Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          path: Doors
+
+      - name: Checkout world-portals
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          repository: AmyJeanes/world-portals
+          ref: dev
+          path: world-portals
+
+      - name: Checkout wire
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          repository: wiremod/wire
+          ref: master
+          path: wire
+
+      - name: Run glua_check
+        working-directory: Doors
+        shell: pwsh
+        run: ./scripts/glua-check.ps1 -Sarif results.sarif
+
+      - name: Upload SARIF
+        if: always() && hashFiles('Doors/results.sarif') != ''
+        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4
+        with:
+          sarif_file: Doors/results.sarif
+          checkout_path: ${{ github.workspace }}/Doors
+          category: glua_check
+
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -60,7 +99,7 @@ jobs:
           echo "Publishing to workshop ID $WORKSHOP_ID"
           echo "WORKSHOP_ID=$WORKSHOP_ID" >> $GITHUB_OUTPUT
 
-      - uses: AmyJeanes/gmod-upload@main
+      - uses: AmyJeanes/gmod-upload@c660f7674019f7f19246ab87b69124d209f74665 # main
         name: Publish to workshop
         with:
           id: ${{ steps.workshop_id.outputs.WORKSHOP_ID }}
