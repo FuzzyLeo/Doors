@@ -9,6 +9,8 @@
 		"*.git*",
 		"*.fgd",
 		"*.psd",
+		".tools/*",
+		"scripts/*",
 		"LICENSE",
 		"renovate.json"
 	]
