@@ -1,6 +1,7 @@
 -- Handles portals for rendering, thanks to bliptec (http://facepunch.com/member.php?u=238641) for being a babe
 
 if SERVER then
+
     ENT:AddHook("PlayerInitialize", "portals", function(self)
         if self.portals then
             net.WriteEntity(self.portals.exterior)
@@ -211,6 +212,52 @@ if SERVER then
                 portals.exit.fallback = v.exit.fallback
                 portals.exit:Spawn()
                 portals.exit:Activate()
+            end
+        end
+
+        if self.FalseWorldWindows then
+            self.falseworldwindows={}
+            for k,v in pairs(self.FalseWorldWindows) do
+                self.falseworldwindows[k] = {}
+                local fworld = self.falseworldwindows[k]
+                fworld=ents.Create("linked_portal_door")
+
+                -- False World Window
+                fworld:SetWidth(v.width)
+                fworld:SetHeight(v.height)
+                fworld:SetPos(self:LocalToWorld(v.pos))
+                fworld:SetAngles(self:LocalToWorldAngles(v.ang))
+                fworld:SetParent(self)
+
+                if v.thickness then
+                    fworld:SetThickness(v.thickness)
+                end
+
+                if v.inverted then
+                    fworld:SetInverted(v.inverted)
+                end
+
+                if v.model then
+                    fworld:SetModel(v.model)
+                end
+
+                if v.model_offset then
+                    fworld:SetModelPos(v.model_offset.pos)
+                    fworld:SetModelAng(v.model_offset.ang)
+                end
+
+                if v.falseworld then
+                    fworld:SetFalseWorld(v.falseworld)
+                end
+
+                if v.link then
+                    fworld:SetCustomLink(v.link)
+                end
+
+                fworld.exterior = self.exterior
+                fworld.interior = self
+                fworld:Spawn()
+                fworld:Activate()
             end
         end
     end)
