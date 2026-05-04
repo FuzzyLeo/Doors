@@ -19,6 +19,8 @@ net.Receive("DoorsI-Initialize", function(len)
     local int=net.ReadEntity()
     local ext=net.ReadEntity()
     local ply=net.ReadEntity()
+    local intpos=net.ReadVector()
+    int:SetPos(intpos)
     if IsValid(int) and IsValid(ext) then
         int.exterior=ext
         Doors:SetupOwner(int,ply)
