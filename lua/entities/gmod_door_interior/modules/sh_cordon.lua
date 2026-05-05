@@ -126,8 +126,9 @@ if CLIENT then
         self:UpdateCordon()
     end)
 
-    ENT:AddHook("PreRenderPortal", "cordon", function(self,portal)
+    ENT:AddHook("PreRenderPortal", "cordon", function(self,portal,depth)
         if portal ~= self.portals.interior then return end
+        if depth > 1 then return end
         for k in pairs(self.props) do
             if IsValid(k) then
                 k.olddraw=k:GetNoDraw()
@@ -136,8 +137,9 @@ if CLIENT then
         end
     end)
 
-    ENT:AddHook("PostRenderPortal", "cordon", function(self,portal)
+    ENT:AddHook("PostRenderPortal", "cordon", function(self,portal,depth)
         if portal ~= self.portals.interior then return end
+        if depth > 1 then return end
         for k in pairs(self.props) do
             if IsValid(k) and k.olddraw~=nil then
                 k:SetNoDraw(k.olddraw)

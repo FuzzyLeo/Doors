@@ -354,17 +354,17 @@ else
         end
     end)
 
-    hook.Add("wp-prerender","doors-portals",function(portal)
+    hook.Add("wp-prerender","doors-portals",function(portal,exitPortal,plyOrigin,depth)
         local p=portal:GetParent()
         if IsValid(p) and (p.DoorExterior or p.DoorInterior) and p._init then
-            p:CallHook("PreRenderPortal",portal)
+            p:CallHook("PreRenderPortal",portal,depth)
         end
     end)
-    
-    hook.Add("wp-postrender","doors-portals",function(portal)
+
+    hook.Add("wp-postrender","doors-portals",function(portal,exitPortal,plyOrigin,depth)
         local p=portal:GetParent()
         if IsValid(p) and (p.DoorExterior or p.DoorInterior) and p._init then
-            p:CallHook("PostRenderPortal",portal)
+            p:CallHook("PostRenderPortal",portal,depth)
         end
     end)
 
