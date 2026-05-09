@@ -126,12 +126,6 @@ if SERVER then
         end
     end
 
-    ENT:AddHook("ShouldTeleportPortal", "players", function(self,portal,ent)
-        if IsValid(ent) and ent:IsPlayer() and self:CallHook("CanPlayerEnter",ent)==false then
-            return false
-        end
-    end)
-
     ENT:AddHook("Think", "players", function(self)
         for k in pairs(self.occupants) do
             if not IsValid(self.interior) then
@@ -188,4 +182,35 @@ else
     ENT:AddHook("PlayerInitialize", "players", function(self)
         self.occupants = net.ReadTable()
     end)
+
+    -- Predicted player teleport (world-portals SetupMove path) fires
+    -- wp-teleport client-side, which routes here as PostTeleportPortal on
+    -- the exterior. Mirror the same fields the Doors-EnterExit broadcast
+    -- would set, so the interior's ShouldDraw flips on THIS frame instead
+    -- of one tick later (visible as a "blank sky" frame mid-teleport).
+    -- Server's broadcast still arrives shortly after and re-sets the same
+    -- values. ShouldTeleportPortal is now registered shared (and so are
+    -- CanPlayerEnter "lock"/"teleport"), so a server-side veto whose
+    -- predicate reads networked state is also predicted client-side and
+    -- the predicted teleport never fires. A veto whose predicate uses
+    -- server-only state (e.g. admin permissions) still rubberbands.
+    ENT:AddHook("PostTeleportPortal", "predict", function(self, portal, ent)
+        if ent ~= LocalPlayer() then return end
+        if not IsValid(self.interior) then return end
+        ent.door = self
+        ent.doori = self.interior
+        self.occupants[ent] = true
+    end)
 end
+
+-- ShouldTeleportPortal is registered shared so world-portals' predicted
+-- player teleport (SetupMove on the client) can also veto. The handler
+-- delegates to CanPlayerEnter; consumers wanting their veto to fire on
+-- the client (predicting the server's deny) should register CanPlayerEnter
+-- shared too. Server-only registrations still work — they just don't
+-- predict, and the client gets a one-tick rubberband on veto.
+ENT:AddHook("ShouldTeleportPortal", "players", function(self,portal,ent)
+    if IsValid(ent) and ent:IsPlayer() and self:CallHook("CanPlayerEnter",ent)==false then
+        return false
+    end
+end)

@@ -86,12 +86,6 @@ if SERVER then
         end
     end)
 
-    ENT:AddHook("ShouldTeleportPortal", "handleplayers", function(self,portal,ent)
-        if IsValid(ent) and ent:IsPlayer() and portal==self.portals.interior and self.exterior:CallHook("CanPlayerExit",ent)==false then
-            return false
-        end
-    end)
-    
     hook.Add("wp-teleport","doors-handleplayers",function(portal,ent)
         if ent:IsPlayer() then
             for k in pairs(Doors:GetInteriors()) do
@@ -113,6 +107,37 @@ else
     ENT:AddHook("ShouldThink", "handleplayers", function(self)
         if LocalPlayer().doori~=self then
             return false
+        end
+    end)
+end
+
+-- ShouldTeleportPortal must register on both realms so the predicted
+-- player teleport in world-portals' SetupMove can also veto on the
+-- client (otherwise we predict the teleport, server vetoes it via
+-- CanPlayerExit, and the player rubberbands back via snapshot). The
+-- handler itself is realm-safe: CallHook("CanPlayerExit", ent) returns
+-- nil on the client unless a consumer also registered a shared handler,
+-- which is the right opt-in shape.
+ENT:AddHook("ShouldTeleportPortal", "handleplayers", function(self,portal,ent)
+    if IsValid(ent) and ent:IsPlayer() and portal==self.portals.interior and self.exterior:CallHook("CanPlayerExit",ent)==false then
+        return false
+    end
+end)
+
+if CLIENT then
+
+    -- Predicted exit (world-portals SetupMove path). The wp-teleport hook
+    -- routes through the portal's parent — for the main interior portal
+    -- that's `self`, so PostTeleportPortal fires here. Customportals also
+    -- route to `self` but stay inside the interior, so we gate on
+    -- portal == self.portals.interior.
+    ENT:AddHook("PostTeleportPortal", "predict", function(self, portal, ent)
+        if ent ~= LocalPlayer() then return end
+        if not (self.portals and portal == self.portals.interior) then return end
+        ent.door = nil
+        ent.doori = nil
+        if IsValid(self.exterior) and self.exterior.occupants then
+            self.exterior.occupants[ent] = nil
         end
     end)
 

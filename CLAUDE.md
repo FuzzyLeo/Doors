@@ -73,6 +73,8 @@ Created in the interior's `PreInitialize` hook (server side) using two `linked_p
 
 Every world-portals callback (`wp-shouldtp`, `wp-shouldrender`, `wp-predraw`, `wp-postdraw`, `wp-prerender`, `wp-postrender`, `wp-trace`, `wp-tracefilter`, `wp-teleport`, `wp-allowthickportal`) is forwarded into a per-entity hook (`ShouldTeleportPortal`, `ShouldRenderPortal`, `PreDrawPortal`, …). Modules customise rendering / teleport behaviour by registering on those.
 
+The `wp-shouldtp` and `wp-teleport` registrations are **shared-realm** (outside any `if SERVER` block). World-portals' predicted-player teleport in `SetupMove` fires both hooks on the client (LocalPlayer) and on the server, so the registration has to exist in both realms. Inner `ShouldTeleportPortal`/`PostTeleportPortal` chains stay server-only — the client's `CallHook` returns nil (no veto / no-op), and the server stays authoritative.
+
 ### Cordon (`sh_cordon.lua` + `cl_cordon.lua`)
 
 The interior is spawned far enough from anything to be empty, but other props can drift in. The cordon system:

@@ -274,13 +274,6 @@ if SERVER then
             ent:SetPos(self:LocalToWorld(portal.fallback))
         end
     end)
-
-    hook.Add("wp-shouldtp","doors-portals",function(portal,ent)
-        local p = portal:GetParent()
-        if IsValid(p) and (p.DoorInterior or p.DoorExterior) and p._init then
-            return p:CallHook("ShouldTeleportPortal",portal,ent)
-        end
-    end)
 else
     ENT:AddHook("Initialize","interior",function(self)
         self.contains = {}
@@ -382,6 +375,16 @@ else
         end
     end)
 end
+
+-- Shared so the predicted player teleport in world-portals (SetupMove) can
+-- veto on the client too. ShouldTeleportPortal handlers stay server-only;
+-- on the client CallHook returns nil → no veto, server has final authority.
+hook.Add("wp-shouldtp","doors-portals",function(portal,ent)
+    local p = portal:GetParent()
+    if IsValid(p) and (p.DoorInterior or p.DoorExterior) and p._init then
+        return p:CallHook("ShouldTeleportPortal",portal,ent)
+    end
+end)
 
 hook.Add("wp-trace", "doors-portals", function(portal)
     local p=portal:GetParent()
