@@ -55,6 +55,13 @@ function ENT:UpdateCordon()
             if v==true then -- left
                 k:SetNoDraw(false)
                 self.props[k]=nil
+                -- Clear the world-portals back-ref (set above) now this prop has
+                -- left the cordon. Guarded on == self: if the prop moved into
+                -- another overlapping cordon, that one has already re-stamped the
+                -- owner, and we must not clobber its claim.
+                if k.DoorsCordonOwner==self then
+                    k.DoorsCordonOwner=nil
+                end
                 -- print("exit",k)
             elseif v==1 then
                 self.props[k]=true
@@ -98,6 +105,9 @@ ENT:AddHook("OnRemove", "cordon", function(self)
                     end
                 else
                     k:SetNoDraw(false)
+                end
+                if k.DoorsCordonOwner==self then
+                    k.DoorsCordonOwner=nil
                 end
                 self.props[k]=nil
             end
