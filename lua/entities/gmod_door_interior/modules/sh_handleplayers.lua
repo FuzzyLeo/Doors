@@ -132,6 +132,24 @@ else
         end
     end)
 
+    -- world-portals draws a prop straddling a portal as two clipped halves: the
+    -- real entry-half plus a clientside emerged-half ghost at the exit. When a prop
+    -- enters us through the exterior portal its emerged half lands at our INTERIOR
+    -- portal -- i.e. inside the interior, which we park up in the skybox and hide
+    -- from the open world (the ShouldDraw above). The ghost must follow the same
+    -- rule or it floats visibly in the empty sky. It is a model world-portals draws
+    -- via RenderOverride, so it answers wp-shouldghostdraw (routed here as
+    -- ShouldDrawGhost on the emerged half's host) with a clean draw-time skip --
+    -- no SetNoDraw cordon, which is only for engine-native props we can't override.
+    -- Mirror our own aggregate ShouldDraw: it already encodes "visible through the
+    -- door (wp.drawingent) or while inside" and is correct for Doors and TARDIS
+    -- interiors alike. The entry-half ghost (exit at our exterior portal) sits in
+    -- the real world and is left to draw normally (no handler on the exterior).
+    ENT:AddHook("ShouldDrawGhost", "handleplayers", function(self, ent, ghost, portal, exit)
+        if not (self.portals and exit == self.portals.interior) then return end
+        if self:CallHook("ShouldDraw") == false then return false end
+    end)
+
     ENT:AddHook("ShouldThink", "handleplayers", function(self)
         if LocalPlayer().doori~=self then
             return false

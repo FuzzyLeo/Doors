@@ -368,6 +368,19 @@ else
         end
     end)
 
+    -- world-portals draws a prop straddling a portal as two clipped halves: the
+    -- real entry-half and a clientside emerged-half ghost at the exit. Route the
+    -- per-draw "may this ghost draw now?" query to whoever hosts the emerged half
+    -- (the exit portal's parent). For a prop entering us through the exterior
+    -- portal that's our interior, which hides itself in the open world -- see
+    -- ShouldDrawGhost in sh_cordon. exit can briefly be invalid mid-relink.
+    hook.Add("wp-shouldghostdraw","doors-portals",function(ent,ghost,portal,exit)
+        local p=IsValid(exit) and exit:GetParent()
+        if IsValid(p) and (p.DoorExterior or p.DoorInterior) and p._init then
+            return p:CallHook("ShouldDrawGhost",ent,ghost,portal,exit)
+        end
+    end)
+
     hook.Add("wp-allowthickportal","doors-portals",function(portal)
         local p=portal:GetParent()
         if IsValid(p) and (p.DoorExterior or p.DoorInterior) and p._init then
