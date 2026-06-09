@@ -16,13 +16,10 @@ function ENT:GetStuckTrace(ply)
     td.endpos=pos
     td.mins=ply:OBBMins()
     td.maxs=ply:OBBMaxs()
-    -- The StuckFilter hook excludes networked entities so the server and predicting
-    -- client build identical filter membership - the predicted unstick must resolve
-    -- to the same spot on both.
+    -- The StuckFilter hook lets a consumer add networked entities for this trace to
+    -- ignore. They must be networked so the predicting client and server build the
+    -- same filter - the predicted unstick has to resolve to the same spot on both.
     local filter={ply}
-    for _,e in ipairs(self.stuckfilter or {}) do
-        filter[#filter+1]=e
-    end
     local extra=self:CallHook("StuckFilter")
     if extra then
         for _,e in ipairs(extra) do

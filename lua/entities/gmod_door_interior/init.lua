@@ -57,7 +57,6 @@ function ENT:Initialize()
         end
         
         self.occupants = {}
-        self.stuckfilter = {}
         self.lastthink = CurTime()
         self.nextslowthink=CurTime()
         self.initqueue = {}
