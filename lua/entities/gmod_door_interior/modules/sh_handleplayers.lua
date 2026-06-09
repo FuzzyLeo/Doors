@@ -16,11 +16,9 @@ function ENT:GetStuckTrace(ply)
     td.endpos=pos
     td.mins=ply:OBBMins()
     td.maxs=ply:OBBMaxs()
-    -- Filter = ply + the server-side stuckfilter table + a shared StuckFilter
-    -- hook. The hook lets consumers exclude networked entities (TARDIS' interior
-    -- door part) so server and predicting client build identical membership - the
-    -- predicted unstick must land in the same spot on both. CallHook returns the
-    -- first non-nil result, so the single owning consumer returns the whole list.
+    -- The StuckFilter hook excludes networked entities so the server and predicting
+    -- client build identical filter membership - the predicted unstick must resolve
+    -- to the same spot on both.
     local filter={ply}
     for _,e in ipairs(self.stuckfilter or {}) do
         filter[#filter+1]=e
@@ -42,13 +40,8 @@ function ENT:IsStuck(ply)
     return tr.Hit
 end
 
--- Pure safe-position resolver for a player left stuck by a portal teleport.
--- Position only (no SetPos / eye writes) so it runs identically on the server and
--- the predicting client: floor-snap within 10u, else the door's authored Fallback
--- spot. Returns nil when neither resolves, leaving the player put for the server
--- snapshot to correct. Not routed via PlayerEnter/PlayerExit: that path does a
--- server-side SetEyeAngles (reverts under prediction) and re-fires the entry/exit
--- hooks a redundant second time.
+-- A separate resolver, not PlayerEnter/PlayerExit: that path writes eye angles
+-- (reverts under prediction) and re-fires the entry/exit hooks.
 function ENT:ResolveSafePos(ply, exiting)
     -- Find closest floor position within 10 units
     local td=self:GetStuckTrace(ply)
@@ -124,13 +117,9 @@ else
         end
     end)
 
-    -- A prop entering through the exterior portal has its emerged-half ghost at
-    -- our interior portal - inside the interior we park in the skybox and hide
-    -- from the open world. Mirror our own ShouldDraw so the ghost is hidden
-    -- whenever the interior is (else it floats in empty sky); ShouldDraw already
-    -- encodes "visible through the door or while inside", right for Doors and
-    -- TARDIS alike. The entry-half ghost (at our exterior portal) sits in the real
-    -- world and draws normally - no handler there.
+    -- The emerged-half ghost sits at our interior portal, which parks in the skybox
+    -- hidden from the open world. Mirror our ShouldDraw so the ghost hides whenever
+    -- the interior does, instead of floating in empty sky.
     ENT:AddHook("ShouldDrawGhost", "handleplayers", function(self, ent, ghost, portal, exit)
         if not (self.portals and exit == self.portals.interior) then return end
         if self:CallHook("ShouldDraw") == false then return false end
@@ -143,10 +132,9 @@ else
     end)
 end
 
--- Shared (not server-only) so world-portals' predicted teleport in SetupMove can
--- veto on the client too, else we predict the teleport and rubberband when the
--- server vetoes via CanPlayerExit. CanPlayerExit returns nil client-side unless a
--- consumer also registered it shared - the right opt-in shape.
+-- Shared so world-portals' predicted teleport (SetupMove) can veto on the client,
+-- not just the server. A consumer's CanPlayerExit veto only predicts if it too is
+-- registered shared; a server-only one still works but rubberbands on veto.
 ENT:AddHook("ShouldTeleportPortal", "handleplayers", function(self,portal,ent)
     if IsValid(ent) and ent:IsPlayer() and portal==self.portals.interior and self.exterior:CallHook("CanPlayerExit",ent)==false then
         return false
@@ -155,10 +143,8 @@ end)
 
 if CLIENT then
 
-    -- Predicted exit (world-portals SetupMove path): wp-teleport routes through
-    -- the portal's parent, which for the main interior portal is `self`.
-    -- Customportals also route to `self` but stay inside, so gate on the
-    -- interior portal.
+    -- Predicted exit (SetupMove): clear the player's door fields. Gate on the main
+    -- interior portal - customportals route here too but keep the player inside.
     ENT:AddHook("PostTeleportPortal", "predict", function(self, portal, ent)
         if ent ~= LocalPlayer() then return end
         if not (self.portals and portal == self.portals.interior) then return end
@@ -167,10 +153,9 @@ if CLIENT then
         if IsValid(self.exterior) and self.exterior.occupants then
             self.exterior.occupants[ent] = nil
         end
-        -- Predict the unstick the server runs in CheckPlayer so the landing
-        -- matches and world-portals' mv re-sync keeps it. ResolveSafePos is pure,
-        -- so re-running each resim is idempotent; degrades to server-authoritative
-        -- if not stuck client-side.
+        -- Predict the exit unstick so the landing matches the server's. ResolveSafePos
+        -- is pure, so re-running it each resim is safe; if not stuck client-side it just
+        -- defers to the server.
         if self:IsStuck(ent) then
             local safe = self:ResolveSafePos(ent, true)
             if safe then ent:SetPos(safe) end

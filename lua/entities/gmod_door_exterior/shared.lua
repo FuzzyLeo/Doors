@@ -1,6 +1,6 @@
 ---@class gmod_door_exterior
 ---@field Model string
----@field Fallback table? authored safe-spot {pos=Vector, ang=Angle?}, set by subclasses (TARDIS/Safe-Space)
+---@field Fallback table?
 
 ENT.Type = "anim"
 if WireLib then

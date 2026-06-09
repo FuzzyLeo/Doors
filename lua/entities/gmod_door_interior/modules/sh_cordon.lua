@@ -42,10 +42,8 @@ function ENT:UpdateCordon()
             --     print("enter",v)
             -- end
             self.props[v]=1
-            -- Back-ref for the wp-shouldghost hook below: marks v as a real prop
-            -- we only hide locally, so it stays ghostable while straddling a
-            -- portal. The handler re-validates membership, so a stale ref after
-            -- the prop leaves is harmless.
+            -- Back-ref so the wp-shouldghost hook can re-opt this locally-hidden
+            -- prop back into ghosting while it straddles the portal.
             v.DoorsCordonOwner=self
         end
     end
@@ -54,9 +52,8 @@ function ENT:UpdateCordon()
             if v==true then -- left
                 k:SetNoDraw(false)
                 self.props[k]=nil
-                -- Clear the back-ref now this prop left. Guarded == self: an
-                -- overlapping cordon may have already re-stamped the owner, and we
-                -- must not clobber its claim.
+                -- Guarded == self: an overlapping cordon may have re-stamped the
+                -- owner, and we must not clear its claim.
                 if k.DoorsCordonOwner==self then
                     k.DoorsCordonOwner=nil
                 end
@@ -162,11 +159,10 @@ if CLIENT then
         end
     end)
 
-    -- world-portals skips client-NoDraw'd props from ghosting by default, but our
-    -- cordon NoDraws interior props (real server-side) while the player is outside.
-    -- Opt those back in so a prop half-through the door still shows its emerged
-    -- half. Re-validate membership: a prop that has since left the cordon may hold
-    -- a stale DoorsCordonOwner ref.
+    -- world-portals skips client-NoDraw'd props from ghosting, but our cordon
+    -- NoDraws real (server-drawable) interior props while the player is outside.
+    -- Opt those back in so a prop half-through the door still shows its emerged half.
+    -- Re-validate via owner.props - a prop that left the cordon may hold a stale ref.
     hook.Add("wp-shouldghost", "doors_cordon", function(ent)
         local owner = ent.DoorsCordonOwner
         if IsValid(owner) and owner.props and owner.props[ent] then return true end

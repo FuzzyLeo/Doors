@@ -368,10 +368,9 @@ else
         end
     end)
 
-    -- Route world-portals' per-draw "may this ghost draw now?" query to whoever
-    -- hosts the emerged half - the exit portal's parent. For a prop entering
-    -- through the exterior portal that's our interior, which hides itself in the
-    -- open world. exit can briefly be invalid mid-relink.
+    -- Route world-portals' per-draw ghost-draw query to the exit portal's parent,
+    -- which hosts the emerged half and decides whether it may draw this pass. exit
+    -- can briefly be invalid mid-relink.
     hook.Add("wp-shouldghostdraw","doors-portals",function(ent,ghost,portal,exit)
         local p=IsValid(exit) and exit:GetParent()
         if IsValid(p) and (p.DoorExterior or p.DoorInterior) and p._init then
@@ -388,10 +387,8 @@ else
 end
 
 -- Shared so world-portals' predicted teleport (SetupMove) can consult it on the
--- client too. The ShouldTeleportPortal handlers are shared, but their inner
--- CanPlayer* checks are server-only by default, so client CallHook returns nil ->
--- no veto and the server stays authoritative; a consumer opts into a predicted
--- veto by registering CanPlayer* shared.
+-- client too, not just the server. Forwards to the parent's ShouldTeleportPortal
+-- chain; the server stays authoritative.
 hook.Add("wp-shouldtp","doors-portals",function(portal,ent)
     local p = portal:GetParent()
     if IsValid(p) and (p.DoorInterior or p.DoorExterior) and p._init then
@@ -420,12 +417,10 @@ hook.Add("wp-teleport","doors-portals",function(portal,ent,newpos,newang)
     end
 end)
 
--- A TARDIS/Doors interior's structure (walls, floor, corridors) is built from
--- separate gmod_tardis_part_* entities that aren't engine-parented or constrained
--- to the interior - they track it via custom fields, so world-portals'
--- gatherParentSolids can't discover them. Offer the parts as candidates; it only
--- no-collides those flagged PART.PortalNoCollide (opt-in, default solid), so the
--- floor and structure stay solid and a transiting prop can't drop through.
+-- A TARDIS/Doors interior's walls/floor are separate gmod_tardis_part_* entities
+-- not engine-parented to the interior, so world-portals can't find them as parent
+-- solids. Offer them here; only PART.PortalNoCollide-flagged parts phase (default
+-- solid), so the floor stays solid under a transiting prop.
 hook.Add("wp-nocollide","doors-portals",function(portal,ent)
     local p=portal:GetParent()
     if not (IsValid(p) and (p.DoorInterior or p.DoorExterior) and p._init and istable(p.parts)) then return end
