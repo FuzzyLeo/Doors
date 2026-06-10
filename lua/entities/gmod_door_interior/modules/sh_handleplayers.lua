@@ -37,8 +37,8 @@ function ENT:IsStuck(ply)
     return tr.Hit
 end
 
--- A separate resolver, not PlayerEnter/PlayerExit: that path writes eye angles
--- (reverts under prediction) and re-fires the entry/exit hooks.
+-- Position only - no eye writes or hooks. Runs in the predicted unstick path on
+-- both realms (and every client resim), so it must stay pure and idempotent.
 function ENT:ResolveSafePos(ply, exiting)
     -- Find closest floor position within 10 units
     local td=self:GetStuckTrace(ply)
@@ -129,9 +129,9 @@ else
     end)
 end
 
--- Shared so world-portals' predicted teleport (SetupMove) can veto on the client,
--- not just the server. A consumer's CanPlayerExit veto only predicts if it too is
--- registered shared; a server-only one still works but rubberbands on veto.
+-- Shared so world-portals' predicted SetupMove teleport runs this veto on the client
+-- too. The veto only predicts if the consumer's CanPlayerExit is also shared; a
+-- server-only CanPlayerExit still vetoes on the server, but the client rubberbands.
 ENT:AddHook("ShouldTeleportPortal", "handleplayers", function(self,portal,ent)
     if IsValid(ent) and ent:IsPlayer() and portal==self.portals.interior and self.exterior:CallHook("CanPlayerExit",ent)==false then
         return false
@@ -140,10 +140,12 @@ end)
 
 if CLIENT then
 
-    -- Predicted exit (SetupMove): clear the player's door fields. Gate on the main
-    -- interior portal - customportals route here too but keep the player inside.
+    -- Predicted exit (SetupMove): clear the player's door fields immediately so the
+    -- interior stops rendering this frame - the predicted crossing can land before the
+    -- server catches up. The Doors-EnterExit broadcast re-sets the same fields soon after.
     ENT:AddHook("PostTeleportPortal", "predict", function(self, portal, ent)
         if ent ~= LocalPlayer() then return end
+        -- Gate on the main interior portal: customportals route here too but keep the player inside.
         if not (self.portals and portal == self.portals.interior) then return end
         ent.door = nil
         ent.doori = nil
