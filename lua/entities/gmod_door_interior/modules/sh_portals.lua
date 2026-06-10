@@ -369,8 +369,7 @@ else
     end)
 
     -- Route world-portals' per-draw ghost-draw query to the exit portal's parent,
-    -- which hosts the emerged half and decides whether it may draw this pass. exit
-    -- can briefly be invalid mid-relink.
+    -- which hosts the emerged half and decides whether it may draw this pass.
     hook.Add("wp-shouldghostdraw","doors-portals",function(ent,ghost,portal,exit)
         local p=IsValid(exit) and exit:GetParent()
         if IsValid(p) and (p.DoorExterior or p.DoorInterior) and p._init then
@@ -417,16 +416,9 @@ hook.Add("wp-teleport","doors-portals",function(portal,ent,newpos,newang)
     end
 end)
 
--- A TARDIS/Doors interior's walls/floor are separate gmod_tardis_part_* entities
--- not engine-parented to the interior, so world-portals can't find them as parent
--- solids. Offer them here; only PART.PortalNoCollide-flagged parts phase (default
--- solid), so the floor stays solid under a transiting prop.
 hook.Add("wp-nocollide","doors-portals",function(portal,ent)
     local p=portal:GetParent()
-    if not (IsValid(p) and (p.DoorInterior or p.DoorExterior) and p._init and istable(p.parts)) then return end
-    local list = {}
-    for _, part in pairs(p.parts) do
-        if IsValid(part) then list[#list+1] = part end
+    if IsValid(p) and (p.DoorInterior or p.DoorExterior) and p._init then
+        return p:CallHook("NoCollidePortal",portal,ent)
     end
-    return list
 end)
