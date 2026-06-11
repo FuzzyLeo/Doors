@@ -325,7 +325,30 @@ else
     end)
 
     ENT:AddHook("ShouldRenderPortal", "portals", function(self)
-        if LocalPlayer().doori~=self then
+        local rp = wp.renderparent
+        if self.portals then
+            -- Looking out our interior door: the exterior view it shows isn't our
+            -- interior, so our portals don't belong in it. Scan-phase twin of the
+            -- wp.drawingent check ShouldDraw uses for the interior world. Exception:
+            -- if our exterior is parked inside an interior (self-nested, or this TARDIS
+            -- in another), looking out genuinely shows that interior, so they do belong.
+            if rp==self.portals.interior then
+                if IsValid(self.exterior) and IsValid(self.exterior.insideof) then
+                    return
+                end
+                return false
+            end
+            -- Looking in through our exterior door: our interior's portals belong in
+            -- that view (a false world is a portal nested in the regular portal), even
+            -- for a non-occupant. Defer to the rest of the chain (door open etc).
+            if rp==self.portals.exterior then
+                return
+            end
+        end
+        -- Otherwise (your own eye view, or the open world): only the occupant sees our
+        -- interior's portals - or someone inside a TARDIS nested in us (self.contains
+        -- holds their box), else they black out when you step into the inner one.
+        if LocalPlayer().doori~=self and not self.contains[LocalPlayer().door] then
             return false
         end
     end)

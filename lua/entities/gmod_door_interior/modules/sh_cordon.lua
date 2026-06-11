@@ -118,7 +118,13 @@ if CLIENT then
             local portals = interior.portals
             if portals then
                 if rp == portals.exterior then return true end
-                if rp == portals.interior then return false end
+                if rp == portals.interior then
+                    -- Looking out our interior door: hide our props - unless our exterior
+                    -- is parked inside an interior (self-nested, or this TARDIS in another),
+                    -- where looking out genuinely shows that interior and the props belong.
+                    if IsValid(interior.exterior) and IsValid(interior.exterior.insideof) then return true end
+                    return false
+                end
             end
         end
         return LocalPlayer().doori == interior

@@ -16,6 +16,10 @@ function ENT:GetStuckTrace(ply)
     td.endpos=pos
     td.mins=ply:OBBMins()
     td.maxs=ply:OBBMaxs()
+    -- Match the player's real movement collision. Without it the trace defaults to
+    -- MASK_SOLID, which can read a player wedged in another solid (a TARDIS shell) as
+    -- 0.12u-clear, so the unstick "succeeds" while they stay frozen in place.
+    td.mask=MASK_PLAYERSOLID
     -- The StuckFilter hook lets a consumer add networked entities for this trace to
     -- ignore. They must be networked so the predicting client and server build the
     -- same filter - the predicted unstick has to resolve to the same spot on both.
@@ -37,28 +41,68 @@ function ENT:IsStuck(ply)
     return tr.Hit
 end
 
+-- True when our own exterior is parked inside our interior (self-nested, e.g. a TARDIS
+-- landed inside itself). Crossing the interior door then keeps the player inside us
+-- instead of putting them out, so the enter/exit and predicted paths special-case it.
+function ENT:ExteriorIsNested()
+    return IsValid(self.exterior) and self:PositionInside(self.exterior:GetPos())
+end
+
 -- Position only - no eye writes or hooks. Runs in the predicted unstick path on
 -- both realms (and every client resim), so it must stay pure and idempotent.
 function ENT:ResolveSafePos(ply, exiting)
-    -- Find closest floor position within 10 units
-    local td=self:GetStuckTrace(ply)
-    local oldmaxsz=td.maxs.z
-    td.maxs.z=td.mins.z -- Ignore head height for floor snap due to low ceilings
-    td.start = td.start + Vector(0,0,10)
-    local tr = util.TraceHull(td)
-    local newpos = tr.HitPos
-
-    -- Reset trace parameters to check if new position is valid
-    td.maxs.z=oldmaxsz
-    td.start=newpos
-    td.endpos=newpos
-
-    if newpos and not util.TraceHull(td).Hit then
-        -- New floor position is valid
-        return newpos
+    local function clear(pos)
+        local t = self:GetStuckTrace(ply)
+        t.start = pos
+        t.endpos = pos
+        return not util.TraceHull(t).Hit
+    end
+    -- Settle straight down onto the floor under a clear point (flattened hull so a low
+    -- ceiling doesn't block the drop).
+    local function floorSnap(top, drop)
+        local t = self:GetStuckTrace(ply)
+        t.maxs.z = t.mins.z
+        t.start = top
+        t.endpos = top - Vector(0, 0, drop)
+        return util.TraceHull(t).HitPos
     end
 
-    -- No clear floor: use the door's authored fallback safe-spot.
+    local base = ply:GetPos()
+
+    -- 1. Step up onto a ledge. The common portal-exit embed is the feet caught a couple
+    -- of units in a door sill; rising onto it barely moves the player (it settles back
+    -- near in place), so try it before the forward shove, which overshoots far enough to
+    -- read as a teleport. Lift until the hull clears, then settle back down onto the ledge.
+    for up = 2, 20, 2 do
+        local top = base + Vector(0, 0, up)
+        if clear(top) then
+            local floor = floorSnap(top, up + 12)
+            if floor and clear(floor) then return floor end
+            return top
+        end
+    end
+
+    -- 2. Push out along the door we emerged from - a real horizontal embed (an exterior
+    -- shell parked inside an interior) that lifting can't clear. Sweep to a clear spot
+    -- away from the crossing plane, then settle onto the floor there.
+    local door = exiting and self.portals.exterior or self.portals.interior
+    if IsValid(door) then
+        local fwd = door:GetForward()
+        fwd.z = 0
+        if fwd:LengthSqr() > 0.001 then
+            fwd:Normalize()
+            for dist = 8, 128, 8 do
+                local test = base + fwd * dist
+                if clear(test) then
+                    local snapped = floorSnap(test + Vector(0, 0, 12), 96)
+                    if snapped and clear(snapped) then return snapped end
+                    return test
+                end
+            end
+        end
+    end
+
+    -- 3. No clear spot: use the door's authored fallback safe-spot.
     if IsValid(self.exterior) then
         return self.exterior:ResolveFallbackPos(ply, exiting)
     end
@@ -86,6 +130,13 @@ if SERVER then
                 local safe = self:ResolveSafePos(ply, false)
                 if safe then ply:SetPos(safe) end
             end
+        elseif self.occupants[ply] and inbox and IsValid(portal) and portal==self.portals.interior
+            and self:ExteriorIsNested() and self:IsStuck(ply) then
+            -- Walked out our interior door but our exterior is parked inside us: stay an
+            -- occupant and push out of the shell into the room (snapping to the door would
+            -- re-cross and bounce).
+            local safe = self:ResolveSafePos(ply, true)
+            if safe then ply:SetPos(safe) end
         end
     end
     
@@ -93,6 +144,24 @@ if SERVER then
         if not self._init then return end
         for _,v in pairs(player.GetAll()) do
             self:CheckPlayer(v)
+        end
+    end)
+
+    -- The crossing-time unstick checks before a player can settle a fraction into an
+    -- exterior shell parked inside the interior (self-nested, or a TARDIS in another
+    -- TARDIS) - they drop into it a tick later, too late for that check. Re-resolve any
+    -- occupant left stuck, pushing them out via the shell's OWN interior so the exit-door
+    -- direction actually escapes it (our own door may point the wrong way).
+    ENT:AddHook("Think", "unstick-occupant", function(self)
+        if not self._init or not self.occupants then return end
+        for ply in pairs(self.occupants) do
+            if IsValid(ply) and ply:IsPlayer() and self:IsStuck(ply) then
+                local hit = util.TraceHull(self:GetStuckTrace(ply)).Entity
+                local shellInt = IsValid(hit) and hit.interior
+                local resolver = (IsValid(shellInt) and shellInt.ResolveSafePos) and shellInt or self
+                local safe = resolver:ResolveSafePos(ply, true)
+                if safe then ply:SetPos(safe) end
+            end
         end
     end)
 
@@ -123,7 +192,10 @@ else
     end)
 
     ENT:AddHook("ShouldThink", "handleplayers", function(self)
-        if LocalPlayer().doori~=self then
+        -- Keep thinking when the player is inside a TARDIS nested in us (self.contains
+        -- holds their box), mirroring the ShouldDraw exemption above - else our parts
+        -- (a nested TARDIS's door/console/screens) freeze the instant they step inside it.
+        if LocalPlayer().doori~=self and not self.contains[LocalPlayer().door] then
             return false
         end
     end)
@@ -147,6 +219,17 @@ if CLIENT then
         if ent ~= LocalPlayer() then return end
         -- Gate on the main interior portal: customportals route here too but keep the player inside.
         if not (self.portals and portal == self.portals.interior) then return end
+        -- Self-nested (our exterior parked inside us): crossing the interior door keeps
+        -- the player inside, so don't predict an exit - that would blank the interior this
+        -- frame and desync from the server, which never exits them. Just unstick to the
+        -- interior fallback, matching the server's landing.
+        if self:ExteriorIsNested() then
+            if self:IsStuck(ent) then
+                local safe = self:ResolveSafePos(ent, true)
+                if safe then ent:SetPos(safe) end
+            end
+            return
+        end
         ent.door = nil
         ent.doori = nil
         if IsValid(self.exterior) and self.exterior.occupants then
@@ -158,6 +241,18 @@ if CLIENT then
         if self:IsStuck(ent) then
             local safe = self:ResolveSafePos(ent, true)
             if safe then ent:SetPos(safe) end
+        end
+        -- If our exterior is parked inside another interior, we just emerged into that
+        -- one (a TARDIS inside a different TARDIS). Predict entering it so the client
+        -- doesn't blank to sky: the server enters us there too, but its enter broadcast
+        -- loses the one-frame race to the doori clear above.
+        for k in pairs(Doors:GetInteriors()) do
+            if k ~= self and IsValid(k) and IsValid(k.exterior) and k:PositionInside(ent:GetPos()) then
+                ent.door = k.exterior
+                ent.doori = k
+                if k.exterior.occupants then k.exterior.occupants[ent] = true end
+                break
+            end
         end
     end)
 
