@@ -345,10 +345,9 @@ else
                 return
             end
         end
-        -- Otherwise (your own eye view, or the open world): only the occupant sees our
-        -- interior's portals - or someone inside a TARDIS nested in us (self.contains
-        -- holds their box), else they black out when you step into the inner one.
-        if LocalPlayer().doori~=self and not self.contains[LocalPlayer().door] then
+        -- Otherwise (your own eye view, or the open world): only someone inside sees our
+        -- interior's portals.
+        if not self:LocalPlayerInside() then
             return false
         end
     end)

@@ -177,8 +177,25 @@ else
         self.occupants=self.exterior.occupants -- Hooray for referenced tables
     end)
 
+    -- Local player is inside this interior: occupying it directly (doori), or standing in
+    -- a box nested inside us at any depth (a TARDIS in a TARDIS in us) - walk out each
+    -- containing box via insideof. One source of truth for every render/think gate.
+    function ENT:LocalPlayerInside()
+        local ply = LocalPlayer()
+        if ply.doori == self then return true end
+        if not self.contains then return false end
+        local box = ply.door
+        for _ = 1, 16 do -- cap against a stale insideof cycle
+            if not IsValid(box) then return false end
+            if self.contains[box] then return true end
+            local int = box.insideof
+            box = IsValid(int) and int.exterior or nil
+        end
+        return false
+    end
+
     ENT:AddHook("ShouldDraw", "handleplayers", function(self)
-        if (LocalPlayer().doori~=self) and not wp.drawing and not self.contains[LocalPlayer().door] then
+        if not self:LocalPlayerInside() and not wp.drawing then
             return false
         end
     end)
@@ -192,10 +209,7 @@ else
     end)
 
     ENT:AddHook("ShouldThink", "handleplayers", function(self)
-        -- Keep thinking when the player is inside a TARDIS nested in us (self.contains
-        -- holds their box), mirroring the ShouldDraw exemption above - else our parts
-        -- (a nested TARDIS's door/console/screens) freeze the instant they step inside it.
-        if LocalPlayer().doori~=self and not self.contains[LocalPlayer().door] then
+        if not self:LocalPlayerInside() then
             return false
         end
     end)
@@ -260,7 +274,7 @@ if CLIENT then
         local int=ply.doori
         if not IsValid(int) then return end
         local localply=LocalPlayer()
-        local localplyinside=localply.doori==int
+        local localplyinside=int:LocalPlayerInside()
         local drawingportal=wp.drawing and wp.drawingent==int.portals.exterior
         local shoulddraw=int:CallHook("ShouldDrawPlayer", ply, localply)
         if (not localplyinside or shoulddraw==false) and not drawingportal then
@@ -272,7 +286,7 @@ if CLIENT then
         local int=ply.doori
         if not IsValid(int) then return end
         local localply=LocalPlayer()
-        local localplyinside=localply.doori==int
+        local localplyinside=int:LocalPlayerInside()
         local drawingportal=wp.drawing and wp.drawingent==int.portals.exterior
         local shoulddraw=int:CallHook("ShouldDrawPlayer", ply, localply)
         if (not localplyinside or shoulddraw==false) and not drawingportal then

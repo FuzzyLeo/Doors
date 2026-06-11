@@ -127,9 +127,7 @@ if CLIENT then
                 end
             end
         end
-        return LocalPlayer().doori == interior
-            or (interior.contains and interior.contains[LocalPlayer().door])
-            or false
+        return interior:LocalPlayerInside()
     end
 
     -- Chain whatever override we displaced so another system's look is preserved.
