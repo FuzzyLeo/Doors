@@ -1,5 +1,6 @@
 ---@class gmod_door_exterior
 ---@field Model string
+---@field Fallback table?
 
 ENT.Type = "anim"
 if WireLib then

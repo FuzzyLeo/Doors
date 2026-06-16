@@ -274,13 +274,6 @@ if SERVER then
             ent:SetPos(self:LocalToWorld(portal.fallback))
         end
     end)
-
-    hook.Add("wp-shouldtp","doors-portals",function(portal,ent)
-        local p = portal:GetParent()
-        if IsValid(p) and (p.DoorInterior or p.DoorExterior) and p._init then
-            return p:CallHook("ShouldTeleportPortal",portal,ent)
-        end
-    end)
 else
     ENT:AddHook("Initialize","interior",function(self)
         self.contains = {}
@@ -332,9 +325,20 @@ else
     end)
 
     ENT:AddHook("ShouldRenderPortal", "portals", function(self)
-        if LocalPlayer().doori~=self then
-            return false
+        local rp = wp.renderparent
+        if self.portals then
+            -- looking out our interior door: it shows the exterior, not us
+            if rp==self.portals.interior then
+                -- unless our exterior is parked inside another interior (self-nested / TARDIS-in-TARDIS),
+                -- where looking out shows that interior, so our portals should render there
+                if IsValid(self.exterior) and IsValid(self.exterior.insideof) then return end
+                return false
+            end
+            -- looking in our exterior door: our portals should render, even for a non-occupant
+            if rp==self.portals.exterior then return end
         end
+        -- otherwise (own eye view / open world): only someone inside sees our portals
+        if not self:LocalPlayerInside() then return false end
     end)
     
     hook.Add("wp-shouldrender", "doors-portals", function(portal,exit,origin)
@@ -375,6 +379,15 @@ else
         end
     end)
 
+    -- Route world-portals' per-draw ghost-draw query to the exit portal's parent,
+    -- which hosts the emerged half and decides whether it may draw this pass.
+    hook.Add("wp-shouldghostdraw","doors-portals",function(ent,ghost,portal,exit)
+        local p=IsValid(exit) and exit:GetParent()
+        if IsValid(p) and (p.DoorExterior or p.DoorInterior) and p._init then
+            return p:CallHook("ShouldDrawGhost",ent,ghost,portal,exit)
+        end
+    end)
+
     hook.Add("wp-allowthickportal","doors-portals",function(portal)
         local p=portal:GetParent()
         if IsValid(p) and (p.DoorExterior or p.DoorInterior) and p._init then
@@ -382,6 +395,16 @@ else
         end
     end)
 end
+
+-- Shared so world-portals' predicted teleport (SetupMove) can consult it on the
+-- client too, not just the server. Forwards to the parent's ShouldTeleportPortal
+-- chain; the server stays authoritative.
+hook.Add("wp-shouldtp","doors-portals",function(portal,ent)
+    local p = portal:GetParent()
+    if IsValid(p) and (p.DoorInterior or p.DoorExterior) and p._init then
+        return p:CallHook("ShouldTeleportPortal",portal,ent)
+    end
+end)
 
 hook.Add("wp-trace", "doors-portals", function(portal)
     local p=portal:GetParent()
@@ -401,5 +424,12 @@ hook.Add("wp-teleport","doors-portals",function(portal,ent,newpos,newang)
     local p=portal:GetParent()
     if IsValid(p) and (p.DoorInterior or p.DoorExterior) and p._init then
         return p:CallHook("PostTeleportPortal",portal,ent,newpos,newang)
+    end
+end)
+
+hook.Add("wp-nocollide","doors-portals",function(portal,ent)
+    local p=portal:GetParent()
+    if IsValid(p) and (p.DoorInterior or p.DoorExterior) and p._init then
+        return p:CallHook("NoCollidePortal",portal,ent)
     end
 end)

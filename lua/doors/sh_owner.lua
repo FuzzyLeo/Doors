@@ -18,10 +18,8 @@ function Doors:SetupOwner(ent,ply)
     if SERVER and CPPI then
         ent:CPPISetOwner(ply)
     end
-    if ent.parts then
-        for _,v in pairs(ent.parts) do
-            Doors:SetupOwner(v,ply)
-        end
+    if ent.CallHook then
+        ent:CallHook("SetupOwner",ply)
     end
     if ent.DoorExterior and IsValid(ent.interior) then
         self:SetupOwner(ent.interior,ply)

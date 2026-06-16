@@ -1,8 +1,27 @@
 -- Handles players
 
+function ENT:ResolveFallbackPos(ply, exiting)
+    local target, fb
+    if exiting then
+        target, fb = self, self.Fallback
+    elseif IsValid(self.interior) then
+        target, fb = self.interior, self.interior.Fallback
+    end
+    if not target then return end
+    if not fb then return end
+    local newpos = target:LocalToWorld(fb.pos)
+    local height = ply:OBBMaxs().z
+    local up = Vector(0, 0, height)
+    up:Rotate(Angle(0, 0, target:GetAngles().r))
+    -- Roll compensation: the player stays world-upright while the frame can be
+    -- rolled, so lower them by half the height lost to the roll to keep the eyeline
+    -- level. A no-op for the common unrolled frame.
+    return newpos + Vector(0, 0, (up.z - height) / 2)
+end
+
 if SERVER then
     util.AddNetworkString("Doors-EnterExit")
-    
+
     function ENT:PlayerEnter(ply,notp)
         if ply.doors_cooldowncur and ply.doors_cooldowncur>CurTime() then return end
         if self.occupants[ply] then
@@ -27,12 +46,7 @@ if SERVER then
         if IsValid(self.interior) then
             local portals=self.interior.portals
             if (not notp) and portals and self.interior.Fallback then
-                local newpos = self.interior:LocalToWorld(self.interior.Fallback.pos)
-                local height = ply:OBBMaxs().z
-                local temppos = Vector(0,0,height)
-                temppos:Rotate(Angle(0,0,self.interior:GetAngles().r))
-                newpos = newpos + Vector(0,0,(temppos.z - height) / 2)
-                ply:SetPos(newpos)
+                ply:SetPos(self:ResolveFallbackPos(ply, false))
                 local ang=wp.TransformPortalAngle(ply:EyeAngles(),portals.exterior,portals.interior)
                 local fwd=wp.TransformPortalAngle(ply:GetVelocity():Angle(),portals.exterior,portals.interior):Forward()
                 ply:SetEyeAngles(Angle(ang.p,ang.y,0))
@@ -104,12 +118,7 @@ if SERVER then
         ply.door = nil
         ply.doori = nil
         if not notp and self.Fallback then
-            local newpos = self:LocalToWorld(self.Fallback.pos)
-            local height = ply:OBBMaxs().z
-            local temppos = Vector(0,0,height)
-            temppos:Rotate(Angle(0,0,self:GetAngles().r))
-            newpos = newpos + Vector(0,0,(temppos.z - height) / 2)
-            ply:SetPos(newpos)
+            ply:SetPos(self:ResolveFallbackPos(ply, true))
             if IsValid(self.interior) then
                 local portals=self.interior.portals
                 if (not forced) and portals then
@@ -125,12 +134,6 @@ if SERVER then
             self.interior:CallHook("PostPlayerExit", ply, forced, notp)
         end
     end
-
-    ENT:AddHook("ShouldTeleportPortal", "players", function(self,portal,ent)
-        if IsValid(ent) and ent:IsPlayer() and self:CallHook("CanPlayerEnter",ent)==false then
-            return false
-        end
-    end)
 
     ENT:AddHook("Think", "players", function(self)
         for k in pairs(self.occupants) do
@@ -188,4 +191,31 @@ else
     ENT:AddHook("PlayerInitialize", "players", function(self)
         self.occupants = net.ReadTable()
     end)
+
+    -- Predicted entry (SetupMove): set the player's door fields immediately so the
+    -- interior renders this frame - the predicted crossing can land before the server
+    -- catches up. The Doors-EnterExit broadcast re-sets the same fields soon after.
+    ENT:AddHook("PostTeleportPortal", "predict", function(self, portal, ent)
+        if ent ~= LocalPlayer() then return end
+        if not IsValid(self.interior) then return end
+        ent.door = self
+        ent.doori = self.interior
+        self.occupants[ent] = true
+        -- Predict the entry unstick so the landing matches the server's. ResolveSafePos
+        -- is pure, so re-running it each resim is safe; if not stuck client-side it just
+        -- defers to the server.
+        local int = self.interior
+        if int:IsStuck(ent) then
+            local safe = int:ResolveSafePos(ent, false)
+            if safe then ent:SetPos(safe) end
+        end
+    end)
 end
+
+-- Shared (not server-only) so a downstream consumer's CanPlayerEnter veto can
+-- predict on the client during world-portals' SetupMove teleport.
+ENT:AddHook("ShouldTeleportPortal", "players", function(self,portal,ent)
+    if IsValid(ent) and ent:IsPlayer() and self:CallHook("CanPlayerEnter",ent)==false then
+        return false
+    end
+end)
