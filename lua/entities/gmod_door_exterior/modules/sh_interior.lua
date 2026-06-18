@@ -52,6 +52,7 @@ if SERVER then
             if coroutine.status(self.findingpos)=="dead" or (not success) then
                 self.findingpos=nil
                 local creator = self:GetCreator()
+                ---@cast self.interior gmod_door_interior
                 if not success or not res then
                     if self:CallHook("FindingPositionFailed", self.interior, creator, res)~=true then
                         if res then

@@ -2,6 +2,8 @@
 ---@field Model string
 ---@field Fallback table?
 ---@field interior gmod_door_interior?
+---@field Portal DoorPortalSide?
+---@field initqueue table
 
 ENT.Type = "anim"
 if WireLib then
@@ -17,6 +19,7 @@ ENT.Interior        = "gmod_door_interior"
 -- Hook system for modules
 local hooks={}
 
+---@param func fun(self: gmod_door_exterior, ...): any?
 function ENT:AddHook(name,id,func)
     if not (hooks[name]) then hooks[name]={} end
     if hooks[name][id] then error("Duplicate hook ID '"..id.."' for '"..name.."' hook",2) end

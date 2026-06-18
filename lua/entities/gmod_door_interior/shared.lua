@@ -1,6 +1,10 @@
 ---@class gmod_door_interior : Entity
 ---@field Model string
----@field exterior gmod_door_exterior?
+---@field exterior gmod_door_exterior
+---@field Portal DoorPortalSide?
+---@field CustomPortals table<string, DoorCustomPortal>?
+---@field FalseWorldWindows table<string, DoorPortalSide>?
+---@field initqueue table
 
 ENT.Type = "anim"
 if WireLib then
@@ -15,6 +19,7 @@ ENT.DoorInterior    = true
 -- Hook system for modules
 local hooks={}
 
+---@param func fun(self: gmod_door_interior, ...): any?
 function ENT:AddHook(name,id,func)
     if not (hooks[name]) then hooks[name]={} end
     if hooks[name][id] then error("Duplicate hook ID '"..id.."' for '"..name.."' hook",2) end

@@ -28,7 +28,7 @@ end
 
 util.AddNetworkString("DoorsI-Initialize")
 net.Receive("DoorsI-Initialize", function(len,ply)
-    local int=net.ReadEntity()
+    local int=net.ReadEntity() --[[@as gmod_door_interior]]
     if IsValid(int) then
         if int.spacecheck then
             int.initqueue[ply] = true

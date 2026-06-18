@@ -1,5 +1,24 @@
 -- Handles portals for rendering, thanks to bliptec (http://facepunch.com/member.php?u=238641) for being a babe
 
+---@class DoorPortalSide
+---@field pos Vector
+---@field ang Angle
+---@field width number
+---@field height number
+---@field link string?
+---@field exit_point { pos: Vector, ang: Angle }?
+---@field exit_point_offset { pos: Vector, ang: Angle }?
+---@field thickness number?
+---@field inverted boolean?
+---@field model string?
+---@field model_offset { pos: Vector, ang: Angle }?
+---@field black boolean?
+---@field fallback Vector?
+
+---@class DoorCustomPortal
+---@field entry DoorPortalSide
+---@field exit DoorPortalSide
+
 if SERVER then
 
     ENT:AddHook("PlayerInitialize", "portals", function(self)
@@ -25,10 +44,9 @@ if SERVER then
     end)
     
     ENT:AddHook("PreInitialize", "portals", function(self)
-        if not IsValid(self.exterior) then return end
         local int=self.Portal
         local ext=self.exterior.Portal
-        if not (int and ext) then return end
+        if not int or not ext then return end
         self.portals={}
         self.portals.exterior=ents.Create("linked_portal_door")
         self.portals.interior=ents.Create("linked_portal_door")
@@ -120,6 +138,7 @@ if SERVER then
         if self.CustomPortals then
             self.customportals={}
             for k,v in pairs(self.CustomPortals) do
+                ---@cast v DoorCustomPortal
                 self.customportals[k] = {}
                 local portals = self.customportals[k]
                 portals.entry=ents.Create("linked_portal_door")
@@ -219,6 +238,7 @@ if SERVER then
         if self.FalseWorldWindows then
             self.falseworldwindows={}
             for k,v in pairs(self.FalseWorldWindows) do
+                ---@cast v DoorPortalSide
                 local fworld = ents.Create("linked_portal_door")
                 self.falseworldwindows[k] = fworld
 
@@ -316,7 +336,7 @@ else
     end)
     
     ENT:AddHook("ShouldDraw", "portals", function(self)
-        local insideof = IsValid(wp.drawingent) and wp.drawingent.exterior and wp.drawingent.exterior.insideof==self and wp.drawingent.interior.portals.interior==wp.drawingent
+        local insideof = IsValid(wp.drawingent) and wp.drawingent.exterior and wp.drawingent.exterior.insideof==self and wp.drawingent.interior and wp.drawingent.interior.portals and wp.drawingent.interior.portals.interior==wp.drawingent
         if wp.drawing and wp.drawingent==self.portals.interior and not (wp.drawingent==self.portals.interior and self.props[self.exterior]) and (not insideof) then
             return false
         end

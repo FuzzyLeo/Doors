@@ -36,7 +36,7 @@ end
 
 util.AddNetworkString("Doors-Initialize")
 net.Receive("Doors-Initialize", function(len,ply)
-    local ext=net.ReadEntity()
+    local ext=net.ReadEntity() --[[@as gmod_door_exterior]]
     if IsValid(ext) then
         if ext.intready then
             ext:InitializePlayer(ply)
