@@ -1,5 +1,6 @@
----@class gmod_door_interior
+---@class gmod_door_interior : Entity
 ---@field Model string
+---@field exterior gmod_door_exterior?
 
 ENT.Type = "anim"
 if WireLib then

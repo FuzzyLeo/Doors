@@ -25,6 +25,7 @@ if SERVER then
     end)
     
     ENT:AddHook("PreInitialize", "portals", function(self)
+        if not IsValid(self.exterior) then return end
         local int=self.Portal
         local ext=self.exterior.Portal
         if not (int and ext) then return end

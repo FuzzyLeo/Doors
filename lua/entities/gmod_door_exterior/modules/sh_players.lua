@@ -1,5 +1,9 @@
 -- Handles players
 
+---@class Player
+---@field door gmod_door_exterior?
+---@field doori gmod_door_interior?
+
 function ENT:ResolveFallbackPos(ply, exiting)
     local target, fb
     if exiting then
