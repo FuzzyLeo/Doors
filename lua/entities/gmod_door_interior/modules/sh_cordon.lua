@@ -150,7 +150,11 @@ if CLIENT then
 
     local function makeCordonOverride(rec)
         return function(self, flags)
-            if cordonShouldDraw(rec.interior) then drawBase(self, flags, rec) end
+            local interior = rec.interior
+            if not cordonShouldDraw(interior) then return end
+            interior:CallHook("PreDrawCordonProp", self, flags)
+            drawBase(self, flags, rec)
+            interior:CallHook("PostDrawCordonProp", self, flags)
         end
     end
 
