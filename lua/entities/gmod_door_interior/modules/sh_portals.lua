@@ -80,12 +80,12 @@ if SERVER then
         end
 
         if ext.model then
-            self.portals.exterior:SetModel(ext.model)
+            self.portals.exterior:SetCustomModel(ext.model)
         end
 
         if ext.model_offset then
-            self.portals.exterior:SetModelPos(ext.model_offset.pos)
-            self.portals.exterior:SetModelAng(ext.model_offset.ang)
+            self.portals.exterior:SetCustomModelPosOffset(ext.model_offset.pos)
+            self.portals.exterior:SetCustomModelAngOffset(ext.model_offset.ang)
         end
 
         self.portals.exterior.exterior = self.exterior
@@ -122,12 +122,12 @@ if SERVER then
         end
 
         if int.model then
-            self.portals.interior:SetModel(int.model)
+            self.portals.interior:SetCustomModel(int.model)
         end
 
         if int.model_offset then
-            self.portals.interior:SetModelPos(int.model_offset.pos)
-            self.portals.interior:SetModelAng(int.model_offset.ang)
+            self.portals.interior:SetCustomModelPosOffset(int.model_offset.pos)
+            self.portals.interior:SetCustomModelAngOffset(int.model_offset.ang)
         end
 
         self.portals.interior.interior = self
@@ -173,12 +173,12 @@ if SERVER then
                 end
 
                 if v.entry.model then
-                    portals.entry:SetModel(v.entry.model)
+                    portals.entry:SetCustomModel(v.entry.model)
                 end
 
                 if v.entry.model_offset then
-                    portals.entry:SetModelPos(v.entry.model_offset.pos)
-                    portals.entry:SetModelAng(v.entry.model_offset.ang)
+                    portals.entry:SetCustomModelPosOffset(v.entry.model_offset.pos)
+                    portals.entry:SetCustomModelAngOffset(v.entry.model_offset.ang)
                 end
 
                 portals.entry.exterior = self.exterior
@@ -217,12 +217,12 @@ if SERVER then
                 end
 
                 if v.exit.model then
-                    portals.exit:SetModel(v.exit.model)
+                    portals.exit:SetCustomModel(v.exit.model)
                 end
 
                 if v.exit.model_offset then
-                    portals.exit:SetModelPos(v.exit.model_offset.pos)
-                    portals.exit:SetModelAng(v.exit.model_offset.ang)
+                    portals.exit:SetCustomModelPosOffset(v.exit.model_offset.pos)
+                    portals.exit:SetCustomModelAngOffset(v.exit.model_offset.ang)
                 end
 
 
@@ -266,12 +266,12 @@ if SERVER then
                 end
 
                 if v.model then
-                    fworld:SetModel(v.model)
+                    fworld:SetCustomModel(v.model)
                 end
 
                 if v.model_offset then
-                    fworld:SetModelPos(v.model_offset.pos)
-                    fworld:SetModelAng(v.model_offset.ang)
+                    fworld:SetCustomModelPosOffset(v.model_offset.pos)
+                    fworld:SetCustomModelAngOffset(v.model_offset.ang)
                 end
 
                 if v.falseworld then
