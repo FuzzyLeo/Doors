@@ -2,6 +2,7 @@ AddCSLuaFile('cl_init.lua')
 AddCSLuaFile('shared.lua')
 include('shared.lua')
 
+---@param tr WPTraceResult
 function ENT:SpawnFunction( ply, tr, ClassName )
     if not tr.Hit then return end
     local SpawnPos = tr.HitPos + tr.HitNormal
