@@ -1,6 +1,7 @@
 -- Entities
 
 Doors.Interiors={}
+---@api
 function Doors:AddInterior(e)
     self.Interiors[e]=true
 
@@ -11,6 +12,7 @@ function Doors:RemoveInterior(e)
 
     hook.Call("Doors-InteriorRemoved", GAMEMODE, e)
 end
+---@api
 function Doors:GetInteriors()
     return self.Interiors
 end

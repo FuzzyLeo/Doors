@@ -1,5 +1,6 @@
 -- Doors
 
+---@class Doors
 Doors=Doors or {}
 function Doors:LoadFolder(folder,addonly,noprefix)
     if folder then
