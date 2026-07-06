@@ -290,8 +290,6 @@ if SERVER then
         end
     end)
 
-    ---@param portal linked_portal_door
-    ---@param ent Entity
     ENT:AddHook("PostTeleportPortal", "portals", function(self,portal,ent)
         if portal~=self.portals.interior and portal.fallback and ent:IsPlayer() and self:IsStuck(ent) then
             ent:SetPos(self:LocalToWorld(portal.fallback))

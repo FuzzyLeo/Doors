@@ -230,10 +230,6 @@ else
     -- The emerged-half ghost sits at our interior portal, which parks in the skybox
     -- hidden from the open world. Mirror our ShouldDraw so the ghost hides whenever
     -- the interior does, instead of floating in empty sky.
-    ---@param ent Entity
-    ---@param ghost Entity
-    ---@param portal linked_portal_door
-    ---@param exit linked_portal_door
     ENT:AddHook("ShouldDrawGhost", "handleplayers", function(self, ent, ghost, portal, exit)
         if not (self.portals and exit == self.portals.interior) then return end
         if self:CallHook("ShouldDraw") == false then return false end
@@ -249,8 +245,6 @@ end
 -- Shared so world-portals' predicted SetupMove teleport runs this veto on the client
 -- too. The veto only predicts if the consumer's CanPlayerExit is also shared; a
 -- server-only CanPlayerExit still vetoes on the server, but the client rubberbands.
----@param portal linked_portal_door
----@param ent Entity
 ENT:AddHook("ShouldTeleportPortal", "handleplayers", function(self,portal,ent)
     if IsValid(ent) and ent:IsPlayer() and portal==self.portals.interior and self.exterior:CallHook("CanPlayerExit",ent)==false then
         return false
@@ -262,8 +256,6 @@ if CLIENT then
     -- Predicted exit (SetupMove): clear the player's door fields immediately so the
     -- interior stops rendering this frame - the predicted crossing can land before the
     -- server catches up. The Doors-EnterExit broadcast re-sets the same fields soon after.
-    ---@param portal linked_portal_door
-    ---@param ent Entity
     ENT:AddHook("PostTeleportPortal", "predict", function(self, portal, ent)
         if ent ~= LocalPlayer() then return end
         -- Gate on the main interior portal: customportals route here too but keep the player inside.
