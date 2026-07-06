@@ -27,7 +27,7 @@ local hooks={}
 ---@overload fun(self: gmod_door_exterior, name: "AllowInteriorPos", id: string, func: fun(self: gmod_door_exterior, arg1: any, nowhere: Vector, arg3: Vector, arg4: Vector, ...))
 ---@overload fun(self: gmod_door_exterior, name: "BodygroupChanged", id: string, func: fun(self: gmod_door_exterior, bodygroup: number, value: number, ...))
 ---@overload fun(self: gmod_door_exterior, name: "CanPlayerEnter", id: string, func: fun(self: gmod_door_exterior, ply: Player, ...))
----@overload fun(self: gmod_door_exterior, name: "CanPlayerExit", id: string, func: fun(self: gmod_door_exterior, ent: Entity, ...))
+---@overload fun(self: gmod_door_exterior, name: "CanPlayerExit", id: string, func: fun(self: gmod_door_exterior, ply: Player, ...))
 ---@overload fun(self: gmod_door_exterior, name: "CustomData", id: string, func: fun(self: gmod_door_exterior, customData: table, ...))
 ---@overload fun(self: gmod_door_exterior, name: "Draw", id: string, func: fun(self: gmod_door_exterior, ...))
 ---@overload fun(self: gmod_door_exterior, name: "FindingPosition", id: string, func: fun(self: gmod_door_exterior, e: gmod_door_interior, creator: Player, ...))
