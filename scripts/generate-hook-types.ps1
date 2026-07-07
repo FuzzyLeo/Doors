@@ -11,4 +11,4 @@ $ErrorActionPreference = 'Stop'
 
 $root = Split-Path -Parent $PSScriptRoot
 Build-HookTypeCatalogue -Root $root
-Build-GlobalHookOverloads -Root $root -Id doors
+Build-GlobalHookOverloads -Root $root -Id doors -Owns 'Doors-*', 'SkinChanged', 'BodygroupChanged'
