@@ -482,3 +482,13 @@ hook.Add("wp-nocollide","doors-portals",function(portal,ent)
         return p:CallHook("NoCollidePortal",portal,ent)
     end
 end)
+
+---@param portal linked_portal_door
+---@param ent Entity
+hook.Add("wp-shouldghost","doors-portals",function(portal,ent)
+    if ent.DoorInterior or ent.DoorExterior then return false end
+    local p=portal:GetParent()
+    if IsValid(p) and (p.DoorInterior or p.DoorExterior) and p._init then
+        return p:CallHook("ShouldGhostPortal",portal,ent)
+    end
+end)
