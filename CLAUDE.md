@@ -14,12 +14,12 @@ This repo only contains the base entities and shared infrastructure. Concrete do
 
 There is no local build, lint or test command. GMod loads the `lua/` tree at server start.
 
-The only "build" is CI (`.github/workflows/ci.yml`), which on push to `dev`:
-1. Checks out this repo and `AmyJeanes/world-portals@dev` into sibling directories.
-2. Copies both into a single `combined/` folder (world-portals first, then this repo on top).
-3. Runs `AmyJeanes/gmod-upload` to publish to the beta Workshop ID.
+Publishing is CI-only, via the shared `gmod-addon-tools` `publish-workshop.yml` (SteamCMD + fastgmad), which combines this repo and `world-portals` into one `.gma` — world-portals first, then this repo on top, so **same-path files here win**. Two channels:
 
-When verifying changes touch CI, remember the combine step means **paths in this repo collide with paths in `world-portals`** — files with the same path in this repo win.
+- **Beta** (push to `dev`) — `ci.yml` bundles `Doors@dev` + `world-portals@dev` and publishes the beta item silently. A world-portals `dev` push auto-triggers it too.
+- **Stable** (a full GitHub *release* on either repo) — `release.yml` resolves the **latest release** of both Doors and world-portals, bundles each at its tag, and publishes the stable item (phone-gated). Trigger-agnostic: either repo's release reruns the same resolve (world-portals dispatches this workflow). Write a `## Summary` in the release body — its first paragraph becomes the Steam change note (plain prose; Steam is BBCode, not Markdown); version links are automatic. The `LAST_STABLE_PAIR` repo variable guards against re-shipping the same tag pair.
+
+When verifying CI changes, remember the combine step means **paths here collide with `world-portals`** — files with the same path in this repo win.
 
 ## Architecture
 
