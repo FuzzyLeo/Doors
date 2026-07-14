@@ -87,6 +87,10 @@ jobs:
   publish:
     name: Publish to workshop
     needs: setup
+    # Serialize beta uploads so a rare double-trigger queues instead of racing gmpublish.
+    concurrency:
+      group: doors-beta-publish
+      cancel-in-progress: false
     uses: AmyJeanes/gmod-addon-tools/.github/workflows/publish-workshop.yml@e8dfb52f083956804d3208efbbeb92cd651efaf2 # v0.25.0
     with:
       addon: Doors
