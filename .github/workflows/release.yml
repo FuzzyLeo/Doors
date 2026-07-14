@@ -1,5 +1,7 @@
 name: Release to Workshop
 
+# Stable publish: bundles the latest RELEASE of both Doors and world-portals, resolved
+# fresh each run so any trigger (either repo's release, or a dispatch) ships current state.
 on:
   release:
     types: [published]
@@ -18,21 +20,67 @@ permissions:
   contents: read
 
 jobs:
+  resolve:
+    name: Resolve latest release pair
+    runs-on: ubuntu-latest
+    outputs:
+      doors_tag: ${{ steps.pair.outputs.doors_tag }}
+      wp_tag: ${{ steps.pair.outputs.wp_tag }}
+      skip: ${{ steps.pair.outputs.skip }}
+    steps:
+      - name: Resolve both latest release tags + dedup guard
+        id: pair
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LAST_PAIR: ${{ vars.LAST_STABLE_PAIR }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+          PREVIEW_TAG: ${{ github.event.inputs.tag }}
+        run: |
+          set -euo pipefail
+          doors_tag=$(gh release view --repo AmyJeanes/Doors --json tagName -q .tagName)
+          wp_tag=$(gh release view --repo AmyJeanes/world-portals --json tagName -q .tagName)
+          echo "Resolved latest: Doors $doors_tag + World Portals $wp_tag"
+          {
+            echo "doors_tag=$doors_tag"
+            echo "wp_tag=$wp_tag"
+          } >> "$GITHUB_OUTPUT"
+          # Skip only a real publish of an already-shipped pair; dry runs/previews/missing var proceed.
+          if [ "$DRY_RUN" != "true" ] && [ -z "$PREVIEW_TAG" ] && [ "$LAST_PAIR" = "$doors_tag $wp_tag" ]; then
+            echo "Pair '$LAST_PAIR' already published - skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
   publish:
-    uses: AmyJeanes/gmod-addon-tools/.github/workflows/publish-workshop.yml@e8dfb52f083956804d3208efbbeb92cd651efaf2 # v0.25.0
+    name: Publish to workshop
+    needs: resolve
+    if: needs.resolve.outputs.skip != 'true'
+    uses: AmyJeanes/gmod-addon-tools/.github/workflows/publish-workshop.yml@1f73d4d99ed4e75261b7483d94d3414e7dba86dd # v0.26.0
     with:
       addon: "Doors"
       workshop_id: "499280258"
       mfa: true
       dry_run: ${{ github.event.inputs.dry_run == 'true' }}
       merge_repo: AmyJeanes/world-portals
-      merge_ref: release
-      version: ${{ github.event.release.tag_name }}
-      release_url: ${{ github.event.release.html_url }}
-      release_body: ${{ github.event.release.body }}
+      addon_ref: ${{ needs.resolve.outputs.doors_tag }}
+      merge_ref: ${{ needs.resolve.outputs.wp_tag }}
       preview_tag: ${{ github.event.inputs.tag }}
     secrets:
       STEAM_USERNAME: ${{ secrets.STEAM_RELEASE_USERNAME }}
       STEAM_PASSWORD: ${{ secrets.STEAM_RELEASE_PASSWORD }}
       HA_WEBHOOK_URL: ${{ secrets.HA_WEBHOOK_URL }}
       NTFY_CI_PASSWORD: ${{ secrets.NTFY_CI_PASSWORD }}
+
+  record:
+    name: Record published pair
+    needs: [resolve, publish]
+    if: needs.publish.outputs.uploaded == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Store the published tag pair
+        env:
+          GH_TOKEN: ${{ secrets.TOKEN }}
+        run: |
+          gh variable set LAST_STABLE_PAIR --repo AmyJeanes/Doors \
+            --body "${{ needs.resolve.outputs.doors_tag }} ${{ needs.resolve.outputs.wp_tag }}"
