@@ -2,6 +2,10 @@ Doors
 =
 A functioning version of the Doors for Garry's Mod.
 
+Documentation
+=
+[Wiki](https://github.com/AmyJeanes/Doors/wiki)
+
 Requirements
 =
 This addon requires the following:
