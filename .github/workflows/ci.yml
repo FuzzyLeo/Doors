@@ -67,6 +67,42 @@ jobs:
           checkout_path: ${{ github.workspace }}/Doors
           category: glua_check
 
+  typing-check:
+    name: Typing Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: Doors
+
+      - name: Checkout world-portals
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: AmyJeanes/world-portals
+          ref: main
+          path: world-portals
+
+      - name: Checkout wire
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: wiremod/wire
+          ref: master
+          path: wire
+
+      - name: Checkout gmod-addon-tools
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: AmyJeanes/gmod-addon-tools
+          # renovate: datasource=github-tags depName=AmyJeanes/gmod-addon-tools
+          ref: v0.28.1
+          path: gmod-addon-tools
+
+      - name: Run typing check
+        working-directory: Doors
+        shell: pwsh
+        run: ./scripts/typing-check.ps1
+
   setup:
     name: Resolve workshop target
     runs-on: ubuntu-latest
@@ -86,7 +122,7 @@ jobs:
 
   publish:
     name: Publish to workshop
-    needs: setup
+    needs: [setup, glua-check, typing-check]
     # Serialize beta uploads so a rare double-trigger queues instead of racing gmpublish.
     concurrency:
       group: doors-beta-publish
