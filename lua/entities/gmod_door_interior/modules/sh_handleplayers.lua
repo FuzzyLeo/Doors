@@ -337,4 +337,23 @@ if CLIENT then
             return false
         end
     end)
+
+    -- The occupant's held weapon is a separate entity that can draw before PrePlayerDraw culls the
+    -- body, so hide it for the whole out-our-door render rather than floating alone in the exterior.
+    ENT:AddHook("PreRenderPortal", "hideweapon", function(self, portal)
+        if not (self.portals and portal == self.portals.interior) then return end
+        if IsValid(self.exterior) and IsValid(self.exterior.insideof) then return end
+        local w = LocalPlayer():GetActiveWeapon()
+        if IsValid(w) and not w:GetNoDraw() then
+            w:SetNoDraw(true)
+            self.hiddenweapon = w
+        end
+    end)
+
+    ENT:AddHook("PostRenderPortal", "hideweapon", function(self, portal)
+        if portal ~= self.portals.interior then return end
+        local w = self.hiddenweapon
+        if IsValid(w) then w:SetNoDraw(false) end
+        self.hiddenweapon = nil
+    end)
 end

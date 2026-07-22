@@ -5,6 +5,7 @@
 ---@field CustomPortals table<string, doors_custom_portal>?
 ---@field FalseWorldWindows table<string, doors_portal_side>?
 ---@field initqueue table
+---@field hiddenweapon Entity?
 
 ENT.Type = "anim"
 if WireLib then
