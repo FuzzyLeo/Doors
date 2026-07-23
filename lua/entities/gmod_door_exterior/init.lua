@@ -98,16 +98,17 @@ function ENT:Think()
         end
     end
 
-    self:CallHook("Think",CurTime()-self.lastthink)
-    self.lastthink=CurTime()
+    local now = CurTime()
+    self:CallHook("Think", now - self.lastthink)
+    self.lastthink = now
 
-    if self._init and CurTime() >= self.nextslowthink then
-        self.nextslowthink = CurTime() + 1
+    if self._init and now >= self.nextslowthink then
+        self.nextslowthink = now + 1
         self:CallHook("SlowThink")
     end
 
     if self:CallHook("ShouldThinkFast") then
-        self:NextThink(CurTime())
+        self:NextThink(now)
         return true
     end
 end
